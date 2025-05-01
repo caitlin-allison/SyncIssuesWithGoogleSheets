@@ -1,4 +1,4 @@
-const SHEET_NAME = ""
+const SHEET_NAME = "Sheet1"
 const HEADER_ROW = 1;
 
 const GITHUB_TOKEN = ``;
@@ -54,23 +54,33 @@ function handleEdit(e) {
     // Is an issue, connect to Github
     if (rowValues[HDR_INDEX.Type].includes('Issue'))
     {
+      var assignees = (rowValues[HDR_INDEX.Assignees] ?? '').split(", ").map(l => l.trim()).filter(l => l.length > 0);
+      var labels = (rowValues[HDR_INDEX.Labels] ?? '').split(", ").map(l => l.trim()).filter(l => l.length > 0);
+
       // Is an existing Github Issue
       if (!!rowValues[HDR_INDEX.Github_Id]){
         updateGithubIssue(
-            rowValues[HDR_INDEX.Github_Id], rowValues[HDR_INDEX.Title], 
-            rowValues[HDR_INDEX.Assignees].split(", "), rowValues[HDR_INDEX.Labels].split(", "), 
-            rowValues[HDR_INDEX.Project], rowValues[HDR_INDEX.Notes]
+            rowValues[HDR_INDEX.Github_Id], 
+            rowValues[HDR_INDEX.Title], 
+            assignees,
+            labels,
+            rowValues[HDR_INDEX.Project] ?? null,
+            rowValues[HDR_INDEX.Notes]
           )
       }
       else {
+        var assignees = (rowValues[HDR_INDEX.Assignees] ?? '').split(", ").map(l => l.trim()).filter(l => l.length > 0);
+        var labels = (rowValues[HDR_INDEX.Labels] ?? '').split(", ").map(l => l.trim()).filter(l => l.length > 0);
+
         let issueId = createGitHubIssue(
-            rowValues[HDR_INDEX.Title], rowValues[HDR_INDEX.Assignees].split(", "), rowValues[HDR_INDEX.Labels].split(", "), 
-            rowValues[HDR_INDEX.Project], rowValues[HDR_INDEX.Notes]
+            rowValues[HDR_INDEX.Title], 
+            assignees, labels, 
+            rowValues[HDR_INDEX.Project] ?? null, 
+            rowValues[HDR_INDEX.Notes]
         );
         if (issueId) {
-            // Grab cell and set value to return id #
-            const issueCell = sheet.getRange(row, ROWS_HDR.Github_Id);
-            issueCell.setValue(issueNumber);
+          const issueCell = sheet.getRange(ROWS_HDR.Github_Id + row.toString());
+          issueCell.setValue(issueId);
         }
 
       }
@@ -166,8 +176,8 @@ function createGitHubIssue(title, assignees, labels, project, body) {
   const response = UrlFetchApp.fetch(url, options);
   const result = JSON.parse(response.getContentText());
 
-  if (response.getResponseCode() === 201 && result.id) {
-    console.log("Creation success! Id:", result.id);
+  if (response.getResponseCode() === 201 && result.number) {
+    console.log("Creation success! Id:", result.number);
     return result.number; // Return new issue number
   } else {
     Logger.log("Issue creation failed: " + response.getContentText());
